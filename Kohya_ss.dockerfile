@@ -1,4 +1,4 @@
-FROM ai_stack-build-cuda122:latest
+FROM docker_compose_ai-build-cuda122:latest
 
 RUN apt install -y python3-tk
 

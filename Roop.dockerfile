@@ -1,4 +1,4 @@
-FROM ai_stack-build-cuda118:latest
+FROM docker_compose_ai-build-cuda118:latest
 
 #Create new user
 ARG USERNAME=appuser

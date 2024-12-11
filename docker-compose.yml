@@ -1,161 +1,104 @@
-#######################
-#    🤹 SERVICES 🤹
-#######################
-# ✔️ ollama
-# ✔️ openweb-ui
-# ✔️ stable-deffusion automatic1111 + tools
-# ✔️ comfyui INSTALL MANAGER
-# 😵‍💫 roop output folder not writable
-# 💩 kohya_ss
-# 💩 flux-gym
-# 💩 wd-llm-caption-cli
-# 💩 tensorboard
-# wd-llm-caption-cli for better image captions
-# text to speach /whisper / piper
-# speach to text
-# jupyter   docker run -d -p 8888:8888 --gpus all --name jupxter quay.io/jupyter/pytorch-notebook:cuda12-python-3.11.8
-# home assistant support
-#######################
-
-#######################
-#######################
-## Prestuff on host required:
-# curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
-#  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-# sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-# sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-# sudo apt update
-# sudo apt install -y nvidia-container-toolkit
-#######################
-## Configure NVIDIA Container Toolkit
-# sudo nvidia-ctk runtime configure --runtime=docker
-# sudo systemctl restart docker
-#######################
-## Test GPU integration
-# docker run --gpus all nvidia/cuda:11.5.2-base-ubuntu20.04 nvidia-smi
-#######################
-#######################
-# Using models
-# llama3.2:latest
-# (llama3.2-vision:latest)
-# qwen2.5-coder:latest
-# ?? nemotron: ??
-# phi3.5:latest
-# llava:latest
-# nomic-embed-text:latest
-# deepseek-coder-v2:latest
-# stable-code:latest
-# starcoder2:latest
-# (codellama:latest)
-# codestral:latest
-# llama3:70b
-# llama3
-# (deepseek-v2:latest)
-# (blackhat-hacker:latest)
-# (whiterabbitneo:latest )
-# orca-mini:latest
-# (brxce/stable-diffusion-prompt-generator:latest)
-#######################
-#######################
-
 services:
-  # openWebUI:
-  #   image: ghcr.io/open-webui/open-webui:main
-  #   container_name: openwebui-nvidia-docker
-  #   hostname: openwebui
-  #   networks:
-  #     - skynet
-  #   restart: unless-stopped
-  #   volumes:
-  #     - openWebUI-data:/app/backend/data
-  #   ports:
-  #     - 8080:8080
-  #   environment:
-  #     OLLAMA_BASE_URLS: http://ollama:11434
-  #   depends_on:
-  #     - ollama
-  #   deploy:
-  #     replicas: ${START_OLLAMA_RELATED_SERVICES:-0}
+  openWebUI:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: openwebui-nvidia-docker
+    hostname: openwebui
+    networks:
+      - skynet
+    restart: unless-stopped
+    volumes:
+      - openWebUI-data:/app/backend/data
+    ports:
+      - 8080:8080
+    environment:
+      OLLAMA_BASE_URLS: http://ollama:11434
+    depends_on:
+      - ollama
+    deploy:
+      replicas: ${START_OLLAMA_RELATED_SERVICES:-0}
 
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   container_name: ollama-nvidia-docker
-  #   hostname: ollama
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             capabilities: ["gpu"]
-  #             count: all
-  #     replicas: ${START_OLLAMA_RELATED_SERVICES:-0}
-  #   networks:
-  #     - skynet
-  #   volumes:
-  #     - ollama-data:/root/.ollama
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-nvidia-docker
+    hostname: ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: ["gpu"]
+              count: all
+      replicas: ${START_OLLAMA_RELATED_SERVICES:-0}
+    networks:
+      - skynet
+    ports:
+      - 11434:11434
+    volumes:
+      - ollama-data:/root/.ollama
 
   # latest script
-  # automatic1111:
-  #   container_name: automatic1111-nvidia-docker
-  #   image: automatic1111:latest
-  #   restart: always
-  #   build:
-  #     context: .
-  #     dockerfile: Automatic111.dockerfile
-  #     args:
-  #       # Pass .env vars
-  #       INSTALL_COMFYUI_MANAGER: ${INSTALL_COMFYUI_MANAGER}
-  #   ports:
-  #     - "7860:7860"
-  #   depends_on:
-  #     - build-cuda122
-  #   environment:
-  #     PUID: 1000
-  #     PGID: 1000
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             capabilities: [ gpu ]
-  #             count: all
-  #     replicas: ${AUTOMATIC_ACTIVE:-0}
-  #   networks:
-  #     - skynet
-  #   volumes:
-  #     - automatic1111-outputs:/home/appuser/stable-diffusion-webui/outputs
-  #     - automatic1111-models:/home/appuser/stable-diffusion-webui/models/
-  #     - automatic1111-embeddings:/home/appuser/stable-diffusion-webui/embeddings/
+  automatic1111:
+    container_name: automatic1111-nvidia-docker
+    image: automatic1111:latest
+    restart: always
+    build:
+      context: .
+      dockerfile: Automatic111.dockerfile
+      args:
+        # Pass .env vars
+        INSTALL_AUTOMATIC_EXTENTIONS: ${INSTALL_AUTOMATIC_EXTENTIONS}
+    ports:
+      - "7860:7860"
+    depends_on:
+      - build-cuda122
+    # environment:
+    #   PUID: 1000
+    #   PGID: 1000
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [ gpu ]
+              count: all
+      replicas: ${AUTOMATIC_ACTIVE:-0}
+    networks:
+      - skynet
+    volumes:
+      - automatic1111-outputs:/home/appuser/stable-diffusion-webui/outputs
+      - automatic1111-models:/home/appuser/stable-diffusion-webui/models/
+      - automatic1111-embeddings:/home/appuser/stable-diffusion-webui/embeddings/
+      - automatic1111-extentions:/home/appuser/stable-diffusion-webui/extensions
 
-  # comfyui:
-  #   container_name: comfyui-nvidia-docker
-  #   image: comfyui:latest
-  #   restart: always
-  #   build:
-  #     context: .
-  #     dockerfile: Confyui.dockerfile
-  #     args:
-  #       # Pass .env vars
-  #       INSTALL_COMFYUI_MANAGER: ${INSTALL_COMFYUI_MANAGER}
-  #   ports:
-  #     - "7861:8188"
-  #   depends_on:
-  #     - build-cuda122
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             capabilities: [ gpu ]
-  #             count: all
-  #     replicas: ${COMFYUI_ACTIVE:-0}
-  #   networks:
-  #     - skynet
-  #   volumes:
-  #     - comfyui-outputs:/home/appuser/ComfyUI/outputs
-  #     - comfyui-models:/home/appuser/ComfyUI/models/
-  #     - automatic1111-models:/home/appuser/sd/models/:ro
-  #     - automatic1111-embeddings:/home/appuser/sd/embeddings:ro
+  comfyui:
+    container_name: comfyui-nvidia-docker
+    image: comfyui:latest
+    restart: always
+    build:
+      context: .
+      dockerfile: Confyui.dockerfile
+      args:
+        # Pass .env vars
+        INSTALL_COMFYUI_MANAGER: ${INSTALL_COMFYUI_MANAGER}
+    ports:
+      - "7861:8188"
+    depends_on:
+      - build-cuda122
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [ gpu ]
+              count: all
+      replicas: ${COMFYUI_ACTIVE:-0}
+    networks:
+      - skynet
+    volumes:
+      - comfyui-outputs:/home/appuser/ComfyUI/outputs
+      - comfyui-models:/home/appuser/ComfyUI/models/
+      - automatic1111-models:/home/appuser/sd/models/:ro
+      - automatic1111-embeddings:/home/appuser/sd/embeddings:ro
 
   roop:
     container_name: roop-nvidia-docker
@@ -181,25 +124,54 @@ services:
     #volumes:
     #  - roop-output:/home/appuser/roop-unleashed/output
 
-  # flux-gym:
-  #   container_name: flux-gym-nvidia-docker
-  #   image: flux-gym-nvidia-docker
-  #   build:
-  #     context: .
-  #     dockerfile: Fluxgym.dockerfile
-  #   ports:
-  #     - 7863:7860
-  #   volumes:
-  #     - flux-gym-data:/app/data
-  #     - flux-gym-outputs/:/app/fluxgym/outputs/
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             capabilities: [gpu]
-  #             count: all
-  #     replicas: ${START_IMAGE_MANIPULATION_SERVICES:-0}
+  forge:
+    container_name: forge-nvidia-docker
+    image: forge:latest
+    restart: always
+    build:
+      context: .
+      dockerfile: Forge.dockerfile
+    ports:
+      - "7866:7860"
+    depends_on:
+      - build-cuda122
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [ gpu ]
+              count: all
+      #replicas: ${AUTOMATIC_ACTIVE:-0}
+    networks:
+      - skynet
+    volumes:
+      - automatic1111-outputs:/home/appuser/forge/outputs
+      - automatic1111-models:/home/appuser/forge/models/
+      - automatic1111-embeddings:/home/appuser/forge/embeddings/
+      #- automatic1111-extentions:/home/appuser/forge/extensions
+
+
+
+  flux-gym:
+     container_name: flux-gym-nvidia-docker
+     image: flux-gym-nvidia-docker
+     build:
+       context: .
+       dockerfile: Fluxgym.dockerfile
+     ports:
+       - 7863:7860
+     volumes:
+       - flux-gym-data:/app/data
+       - flux-gym-outputs/:/app/fluxgym/outputs/
+     deploy:
+       resources:
+         reservations:
+           devices:
+             - driver: nvidia
+               capabilities: [gpu]
+               count: all
+       replicas: ${START_IMAGE_MANIPULATION_SERVICES:-0}
 
   # wd-llm-caption-cli:
   #   container_name: wd-llm-caption-cli-nvidia-docker
@@ -338,15 +310,73 @@ networks:
     external: false
 
 volumes:
+  # LLM
   openWebUI-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${BASE_PATH}${OPENWEBUI_PATH_TO_DATA}
+      o: bind
   ollama-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${BASE_PATH}${OLLAMA_PATH_TO_DATA}
+      o: bind
+  # Automatic1111
   automatic1111-outputs:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${BASE_PATH}${AUTOMATIC_PATH_TO_OUTPUTS}
+      o: bind
   automatic1111-models:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${BASE_PATH}${AUTOMATIC_PATH_TO_MODELS}
+      o: bind
   automatic1111-embeddings:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${BASE_PATH}${AUTOMATIC_PATH_TO_EMBEDDINGS}
+      o: bind
+  automatic1111-extentions:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${BASE_PATH}${AUTOMATIC_PATH_TO_EXTENTIONS}
+      o: bind
+  # ComfyUi
   comfyui-outputs:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${BASE_PATH}${COMFYUI_PATH_TO_OUTPUTS}
+      o: bind
   comfyui-models:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${BASE_PATH}${COMFYUI_PATH_TO_MODELS}
+      o: bind
+  comfyui-extentions:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${BASE_PATH}${COMFYUI_PATH_TO_EXTENTIONS}
+      o: bind
+  # Roop
   roop-output:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${BASE_PATH}${ROOP_PATH_TO_OUTPUTS}
+      o: bind
+  # Flux-gym
   flux-gym-data:
   flux-gym-outputs:
+  # Other
   wd-llm-caption-data:
   tensorboard-logs:
